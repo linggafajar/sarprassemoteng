@@ -45,9 +45,8 @@ model PeminjamanBarang {
   tanggalPengajuan    DateTime
   tanggalPengembalian DateTime
   status              String   @default("pending") // pending, approved, rejected
-  catatan             String?
-  createdAt           DateTime @default(now())
 
+  createdAt           DateTime @default(now())
   user    User   @relation(fields: [userId], references: [id])
   barang  Barang @relation(fields: [barangId], references: [id])
 }
@@ -63,7 +62,6 @@ model PermintaanBarang {
   jumlah    Int
   tanggal   DateTime
   status    String   @default("pending") // pending, approved, rejected
-  catatan   String?
   createdAt DateTime @default(now())
 
   user    User   @relation(fields: [userId], references: [id])

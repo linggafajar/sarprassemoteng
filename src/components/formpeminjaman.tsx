@@ -8,6 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
+import {jwtDecode} from "jwt-decode";
+
+type JWTPayload = {
+  id: string
+
+};
 
 export default function PeminjamanForm() {
   const [nama, setNama] = useState("");
@@ -18,9 +24,10 @@ export default function PeminjamanForm() {
   const [tglPinjam, setTglPinjam] = useState<Date | undefined>(undefined);
   const [tglKembali, setTglKembali] = useState<Date | undefined>(undefined);
 
-  // List barang dari API
   const [listBarang, setListBarang] = useState<{ id: number; nama: string; stok: number }[]>([]);
   const [selectedBarangId, setSelectedBarangId] = useState<number | null>(null);
+
+  const [userId, setUserId] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchBarang() {
@@ -33,13 +40,40 @@ export default function PeminjamanForm() {
         console.error("Gagal load barang:", error);
       }
     }
+
+    function getUserFromCookie() {
+      const cookieStr = document.cookie;
+      const token = cookieStr
+        .split("; ")
+        .find((row) => row.startsWith("token="))
+        ?.split("=")[1];
+
+      if (!token) {
+        alert("Token tidak ditemukan, silakan login ulang.");
+        return;
+      }
+
+      try {
+        const decoded = jwtDecode<JWTPayload>(decodeURIComponent(token));
+        setUserId(parseInt(decoded.id));
+      } catch (err) {
+        console.error("Gagal decode token:", err);
+        alert("Token tidak valid. Silakan login ulang.");
+      }
+    }
+
     fetchBarang();
+    getUserFromCookie();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validasi
+    if (!userId) {
+      alert("User tidak ditemukan. Silakan login ulang.");
+      return;
+    }
+
     if (!nama.trim()) return alert("Nama wajib diisi");
     if (!jabatan) return alert("Jabatan wajib dipilih");
     if (!keperluan.trim()) return alert("Keperluan wajib diisi");
@@ -58,6 +92,7 @@ export default function PeminjamanForm() {
       jumlahBarang: Number(jumlah),
       tanggalPengajuan: format(tglPinjam, "yyyy-MM-dd"),
       tanggalPengembalian: format(tglKembali, "yyyy-MM-dd"),
+      userId,
     };
 
     try {
@@ -69,7 +104,6 @@ export default function PeminjamanForm() {
 
       if (res.ok) {
         alert("Peminjaman berhasil");
-        // Reset form
         setNama("");
         setJabatan("");
         setKelas("");
@@ -78,7 +112,6 @@ export default function PeminjamanForm() {
         setTglPinjam(undefined);
         setTglKembali(undefined);
 
-        // Reload list barang (stok terbaru)
         const resBarang = await fetch("/api/barang");
         const updatedBarang = await resBarang.json();
         setListBarang(updatedBarang);
@@ -94,7 +127,7 @@ export default function PeminjamanForm() {
   };
 
   return (
-    <form className="space-y-6 max-w-md mx-auto" onSubmit={handleSubmit}>
+  <form className="space-y-6 max-w-md mx-auto" onSubmit={handleSubmit}>
       <div>
         <Label htmlFor="nama">Nama</Label>
         <Input
@@ -236,4 +269,5 @@ export default function PeminjamanForm() {
       </Button>
     </form>
   );
+
 }

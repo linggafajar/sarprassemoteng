@@ -1,50 +1,44 @@
-"use client"
+"use client";
 
-import React from "react"
-import {
-  ChevronsUpDown,
-  LogOut,
-} from "lucide-react"
-
+import React from "react";
+import { ChevronsUpDown, LogOut } from "lucide-react";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@/components/ui/avatar"
+} from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
-import { useRouter } from "next/navigation"
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 export function NavUser({
   user,
 }: {
   user: {
-    name: string
-    email: string
-    avatar: string
-  }
+    name: string;
+    email: string;
+    avatar: string;
+  };
 }) {
-  const { isMobile } = useSidebar()
-  const router = useRouter()
+  const { isMobile } = useSidebar();
+  const router = useRouter();
 
   function handleLogout() {
-    // Hapus data user di localStorage
-    localStorage.removeItem("user")
-
-    // Redirect ke halaman login (ubah sesuai kebutuhanmu)
-    router.push("/login")
+    Cookies.remove("token");
+    router.push("/login");
   }
 
   return (
@@ -86,12 +80,12 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuItem onClick={handleLogout}>
-              <LogOut />
+              <LogOut className="mr-2" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

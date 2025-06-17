@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
+
+const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key' // Ganti dengan env production
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { identifier, password } = body // Ubah dari email ➝ identifier
+    const { identifier, password } = body
 
     if (!identifier || !password) {
       return NextResponse.json(
@@ -38,16 +41,21 @@ export async function POST(req: Request) {
       )
     }
 
-    // Kirim data user tanpa password
-    return NextResponse.json({
-      message: 'Login berhasil',
-      user: {
+    // Buat token JWT
+    const token = jwt.sign(
+      {
         id: user.id,
         name: user.name,
         email: user.email,
         username: user.username,
         role: user.role,
       },
+      SECRET_KEY,
+      { expiresIn: '1h' } // Token berlaku 1 jam
+    )
+
+    return NextResponse.json({
+      token
     })
   } catch (error) {
     console.error('Login error:', error)

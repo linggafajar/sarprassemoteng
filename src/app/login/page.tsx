@@ -6,7 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import Image from "next/image";
+import Image from "next/image"
+import { jwtDecode } from "jwt-decode"
+import Cookies from "js-cookie"
+
+
+type User = {
+  id: string
+  name: string
+  email: string
+  username: string
+  role: string
+}
+
 
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState("")
@@ -31,16 +43,31 @@ export default function LoginPage() {
         return
       }
 
-      localStorage.setItem("user", JSON.stringify(data.user))
-
-      if (data.user.role === "admin") {
-        router.push("/admin")
-      } else {
-        router.push("/dashboard")
+      const { token } = data
+      if (!token) {
+        setError("Token tidak ditemukan di response.")
+        return
       }
+
+      // Simpan token ke cookie (1 jam)
+      Cookies.set("token", token, { expires: 1 / 24 }) // 1 hour
+
+      // Decode token
+      const decoded = jwtDecode<User>(token)
+    
+
+
+      if (decoded.role === "admin") {
+        router.push("/admin")
+      } else if (decoded.role === "user") {
+        router.push("/dashboard")
+      } else {
+        setError("Role tidak valid.")
+      }
+
     } catch (err) {
       setError("Terjadi kesalahan saat login.")
-      console.error(err)
+      
     }
   }
 
@@ -49,11 +76,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
+      <Card className="w-full max-w-md shadow-lg sm:rounded-xl">
         <CardHeader className="flex flex-col items-center space-y-2">
-          <Image src="/logo.png" alt="desc" width={100} height={100} />
-
+          <Image src="/logo.png" alt="desc" width={80} height={80} className="object-contain" />
           <CardTitle className="text-center text-2xl">Login</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -64,6 +90,7 @@ export default function LoginPage() {
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
+              className="text-sm"
             />
           </div>
           <div>
@@ -73,13 +100,14 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="text-sm"
             />
           </div>
           {error && <p className="text-red-600 text-sm">{error}</p>}
-          <Button className="w-full" onClick={handleLogin}>
+          <Button className="w-full text-sm" onClick={handleLogin}>
             Masuk
           </Button>
-          <Button variant="outline" className="w-full" onClick={goToRegister}>
+          <Button variant="outline" className="w-full text-sm" onClick={goToRegister}>
             Daftar
           </Button>
         </CardContent>

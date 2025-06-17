@@ -1,12 +1,10 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import {
-  SquareTerminal,
-} from "lucide-react"
+import React, { useEffect, useState } from "react";
+import { SquareTerminal } from "lucide-react";
 
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -15,44 +13,55 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
-const defaultUser = {
-  name: "Guest",
-  email: "guest@example.com",
-  avatar: "/avatars/shadcn.jpg",
-}
+import Cookies from "js-cookie";
+import { jwtDecode } from "jwt-decode";
 
-const navMain = [
+const dataNavMain = [
   {
     title: "Menu",
     url: "#",
     icon: SquareTerminal,
     isActive: true,
     items: [
-      { title: "From Permintaan", url: "/permintaan" },
-      { title: "From Peminjaman", url: "/peminjaman" },
-      { title: "Akun", url: "#" },
+      { title: "Daftar Barang", url: "/admin" },
+      { title: "Form Permintaan", url: "/permintaan" },
+      { title: "Form Peminjaman", url: "/peminjaman" },
+      { title: "Notifikasi", url: "/notifikasi" },
     ],
   },
-]
+];
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [user, setUser] = React.useState(defaultUser)
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const [user, setUser] = useState<{
+    name: string;
+    email: string;
+    avatar: string;
+  } | null>(null);
 
-  React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("user")
-      if (stored) {
-        try {
-          setUser(JSON.parse(stored))
-        } catch (e) {
-          console.error("Invalid user in localStorage:", e)
-          setUser(defaultUser)
-        }
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (token) {
+      try {
+        const decoded: any = jwtDecode(token);  
+        setUser({
+          name: decoded.name || "User",
+          email: decoded.email || "user@example.com",
+          avatar: decoded.avatar || "/avatars/default-avatar.png",
+        });
+      } catch (err) {
+        console.error("Token decode error:", err);
+        setUser(null);
       }
     }
-  }, [])
+  }, []);
+
+  const userData = user ?? {
+    name: "shadcn",
+    email: "m@example.com",
+    avatar: "/avatars/shadcn.jpg",
+  };
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -78,11 +87,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
+        <NavMain items={dataNavMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} />
+        <NavUser user={userData} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

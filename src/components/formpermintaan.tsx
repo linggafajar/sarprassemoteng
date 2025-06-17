@@ -1,94 +1,137 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { format } from "date-fns"
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { jwtDecode } from "jwt-decode";
+
+type JWTPayload = {
+  id: string;
+};
 
 export default function PermintaanBarangForm() {
-  const [nama, setNama] = useState("")
-  const [jabatan, setJabatan] = useState("")
-  const [kelas, setKelas] = useState("")
-  const [keperluan, setKeperluan] = useState("")
-  const [tanggal, setTanggal] = useState<Date | undefined>(new Date())
-  const [jumlah, setJumlah] = useState<number | "">(0)
-
-  const [listBarang, setListBarang] = useState<{ id: number; nama: string; stok: number }[]>([])
-  const [selectedBarangId, setSelectedBarangId] = useState<number | null>(null)
+  const [userId, setUserId] = useState<number | null>(null);
+  const [nama, setNama] = useState("");
+  const [jabatan, setJabatan] = useState("");
+  const [kelas, setKelas] = useState("");
+  const [keperluan, setKeperluan] = useState("");
+  const [tanggal, setTanggal] = useState<Date | undefined>(new Date());
+  const [jumlah, setJumlah] = useState<number | "">(0);
+  const [listBarang, setListBarang] = useState<{ id: number; nama: string; stok: number }[]>([]);
+  const [selectedBarangId, setSelectedBarangId] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    async function fetchBarang() {
+    function getUserFromCookie() {
+      const cookieStr = document.cookie;
+      const token = cookieStr
+        .split("; ")
+        .find((row) => row.startsWith("token="))
+        ?.split("=")[1];
+
+      if (!token) {
+        alert("Token tidak ditemukan, silakan login ulang.");
+        return;
+      }
+
       try {
-        const res = await fetch("/api/barang")
-        const data = await res.json()
-        setListBarang(data)
-        if (data.length > 0) setSelectedBarangId(data[0].id)
-      } catch (error) {
-        console.error("Gagal ambil data barang:", error)
+        const decoded = jwtDecode<JWTPayload>(decodeURIComponent(token));
+        const parsedId = parseInt(decoded.id);
+        if (isNaN(parsedId)) {
+          throw new Error("ID tidak valid di dalam token");
+        }
+        setUserId(parsedId);
+      } catch (err) {
+        console.error("Gagal decode token:", err);
+        alert("Token tidak valid. Silakan login ulang.");
       }
     }
-    fetchBarang()
-  }, [])
+
+    async function fetchBarang() {
+      try {
+        const res = await fetch("/api/barang");
+        const data = await res.json();
+        setListBarang(data);
+        if (data.length > 0) setSelectedBarangId(data[0].id);
+      } catch (error) {
+        console.error("Gagal ambil data barang:", error);
+      }
+    }
+
+    getUserFromCookie();
+    fetchBarang();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    if (!userId) {
+      alert("User tidak ditemukan. Silakan login ulang.");
+      return;
+    }
 
     if (!selectedBarangId) {
-      alert("Pilih barang terlebih dahulu")
-      return
+      alert("Pilih barang terlebih dahulu");
+      return;
     }
 
     if (jumlah === "" || jumlah <= 0) {
-      alert("Jumlah harus lebih dari 0")
-      return
+      alert("Jumlah harus lebih dari 0");
+      return;
     }
 
+    setIsSubmitting(true);
+
     const data = {
-      nama,
+      userId,
+      nama: nama.trim(),
       jabatan,
-      kelas,
-      keperluan,
+      kelas: kelas.trim(),
+      keperluan: keperluan.trim(),
       tanggal: tanggal ? format(tanggal, "yyyy-MM-dd") : null,
-      jumlah,
+      jumlah: Number(jumlah),
       barangId: selectedBarangId,
-    }
+    };
 
     try {
       const res = await fetch("/api/permintaan", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      })
+      });
 
-if (!res.ok) throw new Error("Gagal mengirim permintaan");
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || "Gagal mengirim permintaan");
+      }
 
-console.log("Permintaan berhasil dikirim");
-
-
-
+      alert("Permintaan berhasil dikirim");
+      
       // Reset form
-      setNama("")
-      setJabatan("")
-      setKelas("")
-      setKeperluan("")
-      setTanggal(undefined)
-      setJumlah(0)
-      setSelectedBarangId(listBarang.length > 0 ? listBarang[0].id : null)
+      setNama("");
+      setJabatan("");
+      setKelas("");
+      setKeperluan("");
+      setTanggal(undefined);
+      setJumlah(0);
+      setSelectedBarangId(listBarang.length > 0 ? listBarang[0].id : null);
+
     } catch (err) {
-      console.error(err)
-      alert("Terjadi kesalahan saat submit")
+      console.error(err);
+      alert("Terjadi kesalahan saat submit");
+    } finally {
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
-      {/* Nama */}
       <div>
         <Label htmlFor="nama">Nama</Label>
         <Input
@@ -101,7 +144,6 @@ console.log("Permintaan berhasil dikirim");
         />
       </div>
 
-      {/* Jabatan */}
       <div>
         <Label htmlFor="jabatan">Jabatan</Label>
         <select
@@ -111,16 +153,13 @@ console.log("Permintaan berhasil dikirim");
           required
           className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
         >
-          <option value="" disabled>
-            Pilih jabatan
-          </option>
+          <option value="">Pilih jabatan</option>
           <option value="Guru">Guru</option>
           <option value="Staf">Staf</option>
           <option value="Siswa">Siswa</option>
         </select>
       </div>
 
-      {/* Kelas */}
       <div>
         <Label htmlFor="kelas">Kelas</Label>
         <Input
@@ -132,7 +171,6 @@ console.log("Permintaan berhasil dikirim");
         />
       </div>
 
-      {/* Barang */}
       <div>
         <Label htmlFor="barang">Barang</Label>
         <select
@@ -151,7 +189,6 @@ console.log("Permintaan berhasil dikirim");
         </select>
       </div>
 
-      {/* Keperluan */}
       <div>
         <Label htmlFor="keperluan">Keperluan</Label>
         <Textarea
@@ -164,7 +201,6 @@ console.log("Permintaan berhasil dikirim");
         />
       </div>
 
-      {/* Tanggal */}
       <div>
         <Label htmlFor="tanggal">Tanggal</Label>
         <Popover>
@@ -188,7 +224,6 @@ console.log("Permintaan berhasil dikirim");
         </Popover>
       </div>
 
-      {/* Jumlah */}
       <div>
         <Label htmlFor="jumlah">Jumlah</Label>
         <Input
@@ -197,18 +232,18 @@ console.log("Permintaan berhasil dikirim");
           placeholder="Masukkan jumlah"
           value={jumlah}
           onChange={(e) => {
-            const val = e.target.value
-            if (val === "") setJumlah("")
-            else setJumlah(Number(val))
+            const val = e.target.value;
+            if (val === "") setJumlah("");
+            else setJumlah(Number(val));
           }}
           min={1}
           required
         />
       </div>
 
-      <Button type="submit" className="w-full">
-        Submit
+      <Button type="submit" className="w-full" disabled={isSubmitting}>
+        {isSubmitting ? "Mengirim..." : "Submit"}
       </Button>
     </form>
-  )
+  );
 }

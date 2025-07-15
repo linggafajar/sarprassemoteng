@@ -6,7 +6,6 @@ export async function GET(req: NextRequest) {
   const range = req.nextUrl.searchParams.get('range'); // all | 1bulan | 3bulan | 1tahun
 
   let dateFilter: Date | null = null;
-
   const now = new Date();
 
   if (range === '1bulan') {
@@ -26,12 +25,15 @@ export async function GET(req: NextRequest) {
     const data = await prisma.peminjamanBarang.findMany({
       where,
       orderBy: { tanggalPengajuan: 'desc' },
+      include: {
+        barang: true, // ✅ ambil data relasi barang untuk namaBarang
+      },
     });
 
-    // Buat workbook Excel
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Peminjaman');
 
+    // ✅ Sesuai dengan table tampilan
     worksheet.columns = [
       { header: 'ID', key: 'id', width: 5 },
       { header: 'Nama', key: 'nama', width: 20 },
@@ -40,14 +42,20 @@ export async function GET(req: NextRequest) {
       { header: 'Jumlah', key: 'jumlahBarang', width: 10 },
       { header: 'Tgl Pengajuan', key: 'tanggalPengajuan', width: 15 },
       { header: 'Tgl Pengembalian', key: 'tanggalPengembalian', width: 15 },
-      { header: 'Status', key: 'status', width: 10 },
+      { header: 'Status', key: 'status', width: 15 },
     ];
 
+    // ✅ Isi data row sesuai tampilan tabel
     data.forEach((item) => {
       worksheet.addRow({
-        ...item,
-        tanggalPengajuan: new Date(item.tanggalPengajuan).toLocaleDateString(),
-        tanggalPengembalian: new Date(item.tanggalPengembalian).toLocaleDateString(),
+        id: item.id,
+        nama: item.nama,
+        jabatan: item.jabatan,
+        namaBarang: item.barang?.nama || '-', // tampilkan nama barang dari relasi
+        jumlahBarang: item.jumlahBarang,
+        tanggalPengajuan: new Date(item.tanggalPengajuan).toLocaleDateString('id-ID'),
+        tanggalPengembalian: new Date(item.tanggalPengembalian).toLocaleDateString('id-ID'),
+        status: item.status,
       });
     });
 

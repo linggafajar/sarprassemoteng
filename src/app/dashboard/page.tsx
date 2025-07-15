@@ -28,7 +28,7 @@ export default function UserPage() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/dashboard">User Dashboard</BreadcrumbLink>
+                  <BreadcrumbLink href="/dashboard"></BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>

@@ -22,7 +22,7 @@ export default function PermintaanBarangForm() {
   const [keperluan, setKeperluan] = useState("");
   const [tanggal, setTanggal] = useState<Date | undefined>(new Date());
   const [jumlah, setJumlah] = useState<number | "">(0);
-  const [listBarang, setListBarang] = useState<{ id: number; nama: string; stok: number }[]>([]);
+  const [listBarang, setListBarang] = useState<{ id: number; nama: string; stok: number; jenis: string }[]>([]);
   const [selectedBarangId, setSelectedBarangId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -42,9 +42,7 @@ export default function PermintaanBarangForm() {
       try {
         const decoded = jwtDecode<JWTPayload>(decodeURIComponent(token));
         const parsedId = parseInt(decoded.id);
-        if (isNaN(parsedId)) {
-          throw new Error("ID tidak valid di dalam token");
-        }
+        if (isNaN(parsedId)) throw new Error("ID tidak valid di dalam token");
         setUserId(parsedId);
       } catch (err) {
         console.error("Gagal decode token:", err);
@@ -56,8 +54,19 @@ export default function PermintaanBarangForm() {
       try {
         const res = await fetch("/api/barang");
         const data = await res.json();
-        setListBarang(data);
-        if (data.length > 0) setSelectedBarangId(data[0].id);
+
+        const filtered = data.filter((barang: any) =>
+          barang.jenis?.toLowerCase() === "permintaan"
+        );
+
+        setListBarang(filtered);
+
+        if (filtered.length > 0) {
+          setSelectedBarangId(filtered[0].id);
+        } else {
+          setSelectedBarangId(null);
+          alert("Tidak ada barang permintaan tersedia.");
+        }
       } catch (error) {
         console.error("Gagal ambil data barang:", error);
       }
@@ -71,20 +80,9 @@ export default function PermintaanBarangForm() {
     e.preventDefault();
     if (isSubmitting) return;
 
-    if (!userId) {
-      alert("User tidak ditemukan. Silakan login ulang.");
-      return;
-    }
-
-    if (!selectedBarangId) {
-      alert("Pilih barang terlebih dahulu");
-      return;
-    }
-
-    if (jumlah === "" || jumlah <= 0) {
-      alert("Jumlah harus lebih dari 0");
-      return;
-    }
+    if (!userId) return alert("User tidak ditemukan. Silakan login ulang.");
+    if (!selectedBarangId) return alert("Pilih barang terlebih dahulu.");
+    if (jumlah === "" || jumlah <= 0) return alert("Jumlah harus lebih dari 0.");
 
     setIsSubmitting(true);
 
@@ -112,13 +110,13 @@ export default function PermintaanBarangForm() {
       }
 
       alert("Permintaan berhasil dikirim");
-      
+
       // Reset form
       setNama("");
       setJabatan("");
       setKelas("");
       setKeperluan("");
-      setTanggal(undefined);
+      setTanggal(new Date());
       setJumlah(0);
       setSelectedBarangId(listBarang.length > 0 ? listBarang[0].id : null);
 
@@ -131,7 +129,7 @@ export default function PermintaanBarangForm() {
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
+    <form className="space-y-6 max-w-md mx-auto" onSubmit={handleSubmit}>
       <div>
         <Label htmlFor="nama">Nama</Label>
         <Input
@@ -151,7 +149,7 @@ export default function PermintaanBarangForm() {
           value={jabatan}
           onChange={(e) => setJabatan(e.target.value)}
           required
-          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          className="w-full border border-input rounded-md px-3 py-2"
         >
           <option value="">Pilih jabatan</option>
           <option value="Guru">Guru</option>
@@ -178,7 +176,7 @@ export default function PermintaanBarangForm() {
           value={selectedBarangId ?? ""}
           onChange={(e) => setSelectedBarangId(Number(e.target.value))}
           required
-          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          className="w-full border border-input rounded-md px-3 py-2"
         >
           {listBarang.length === 0 && <option value="">Tidak ada barang</option>}
           {listBarang.map((barang) => (
@@ -197,7 +195,6 @@ export default function PermintaanBarangForm() {
           value={keperluan}
           onChange={(e) => setKeperluan(e.target.value)}
           required
-          rows={3}
         />
       </div>
 

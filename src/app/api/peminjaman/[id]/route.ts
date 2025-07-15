@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
- 
+
   const numericId = parseInt(id, 10);
   if (isNaN(numericId)) {
     return NextResponse.json({ error: 'ID tidak valid' }, { status: 400 });
@@ -13,8 +13,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const body = await req.json();
     const { status } = body;
 
-    if (!status || !['approved', 'rejected'].includes(status)) {
-      return NextResponse.json({ error: 'Status tidak valid. Gunakan "approved" atau "rejected".' }, { status: 400 });
+    const allowedStatuses = ['approved', 'rejected', 'dikembalikan'];
+    if (!status || !allowedStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: 'Status tidak valid. Gunakan salah satu dari: ' + allowedStatuses.join(', ') },
+        { status: 400 }
+      );
     }
 
     const updateResult = await prisma.peminjamanBarang.update({

@@ -58,7 +58,7 @@ const [formData, setFormData] = useState({
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Nama</Label>
               <Input
                 id="name"
                 name="name"
@@ -82,7 +82,7 @@ const [formData, setFormData] = useState({
               />
             </div>
             <div>
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Nama Pengguna</Label>
               <Input
                 id="username"
                 name="username"
@@ -107,7 +107,7 @@ const [formData, setFormData] = useState({
               />
             </div>
             <Button type="submit" className="w-full">
-              Create Account
+              Buat Akun
             </Button>
             <Button
               type="button"

@@ -8,11 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 type JWTPayload = {
-  id: string
-
+  id: string;
 };
 
 export default function PeminjamanForm() {
@@ -24,9 +23,8 @@ export default function PeminjamanForm() {
   const [tglPinjam, setTglPinjam] = useState<Date | undefined>(undefined);
   const [tglKembali, setTglKembali] = useState<Date | undefined>(undefined);
 
-  const [listBarang, setListBarang] = useState<{ id: number; nama: string; stok: number }[]>([]);
+  const [listBarang, setListBarang] = useState<{ id: number; nama: string; stok: number; jenis: string }[]>([]);
   const [selectedBarangId, setSelectedBarangId] = useState<number | null>(null);
-
   const [userId, setUserId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -34,8 +32,12 @@ export default function PeminjamanForm() {
       try {
         const res = await fetch("/api/barang");
         const data = await res.json();
-        setListBarang(data);
-        if (data.length > 0) setSelectedBarangId(data[0].id);
+
+        // ✅ Filter hanya barang dengan jenis "permintaan", tidak peduli huruf besar kecil
+        const filtered = data.filter((barang: any) => barang.jenis?.toLowerCase() === "peminjaman");
+
+        setListBarang(filtered);
+        if (filtered.length > 0) setSelectedBarangId(filtered[0].id);
       } catch (error) {
         console.error("Gagal load barang:", error);
       }
@@ -69,11 +71,7 @@ export default function PeminjamanForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!userId) {
-      alert("User tidak ditemukan. Silakan login ulang.");
-      return;
-    }
-
+    if (!userId) return alert("User tidak ditemukan. Silakan login ulang.");
     if (!nama.trim()) return alert("Nama wajib diisi");
     if (!jabatan) return alert("Jabatan wajib dipilih");
     if (!keperluan.trim()) return alert("Keperluan wajib diisi");
@@ -114,8 +112,11 @@ export default function PeminjamanForm() {
 
         const resBarang = await fetch("/api/barang");
         const updatedBarang = await resBarang.json();
-        setListBarang(updatedBarang);
-        if (updatedBarang.length > 0) setSelectedBarangId(updatedBarang[0].id);
+
+        // ✅ Filter ulang setelah submit
+        const filtered = updatedBarang.filter((barang: any) => barang.jenis?.toLowerCase() === "peminjaman");
+        setListBarang(filtered);
+        if (filtered.length > 0) setSelectedBarangId(filtered[0].id);
       } else {
         const errorData = await res.json();
         alert("Gagal menyimpan: " + (errorData.message || "Unknown error"));
@@ -127,7 +128,7 @@ export default function PeminjamanForm() {
   };
 
   return (
-  <form className="space-y-6 max-w-md mx-auto" onSubmit={handleSubmit}>
+    <form className="space-y-6 max-w-md mx-auto" onSubmit={handleSubmit}>
       <div>
         <Label htmlFor="nama">Nama</Label>
         <Input
@@ -269,5 +270,4 @@ export default function PeminjamanForm() {
       </Button>
     </form>
   );
-
 }

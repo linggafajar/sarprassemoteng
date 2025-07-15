@@ -80,6 +80,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-lg sm:rounded-xl">
         <CardHeader className="flex flex-col items-center space-y-2">
           <Image src="/logo.png" alt="desc" width={80} height={80} className="object-contain" />
+          <CardTitle className="text-center text-2xl">SARPRAS SEMOTENG</CardTitle>
           <CardTitle className="text-center text-2xl">Login</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

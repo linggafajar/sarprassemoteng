@@ -11,10 +11,10 @@ type PeminjamanBarang = {
   kelas: string;
   keperluan: string;
   jumlahBarang: number;
-  tanggalPengajuan: string; // ISO date string
-  tanggalPengembalian: string; // ISO date string
-  status: 'pending' | 'approved' | 'rejected';
-  createdAt: string; // ISO date string
+  tanggalPengajuan: string;
+  tanggalPengembalian: string;
+  status: 'pending' | 'approved' | 'rejected' | 'dikembalikan';
+  createdAt: string;
   barang: {
     id: number;
     nama: string;
@@ -25,10 +25,9 @@ type PeminjamanBarang = {
   };
 };
 
-
 export default function PengajuanPage() {
   const [peminjaman, setPeminjaman] = useState<PeminjamanBarang[]>([]);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'dikembalikan'>('all');
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -38,7 +37,6 @@ export default function PengajuanPage() {
         const res = await fetch('/api/peminjaman');
         if (!res.ok) throw new Error('Gagal ambil data');
         const data = await res.json();
-        // urutkan terbaru
         const sorted = data.sort(
           (a: PeminjamanBarang, b: PeminjamanBarang) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -51,7 +49,10 @@ export default function PengajuanPage() {
     fetchData();
   }, []);
 
-  const handleApprove = async (id: number, status: 'approved' | 'rejected') => {
+  const handleApprove = async (
+    id: number,
+    status: 'approved' | 'rejected' | 'dikembalikan'
+  ) => {
     try {
       const res = await fetch(`/api/peminjaman/${id}`, {
         method: 'PATCH',
@@ -70,10 +71,10 @@ export default function PengajuanPage() {
     }
   };
 
-  const filtered = filter === 'all' ? peminjaman : peminjaman.filter(p => p.status === filter);
+  const filtered =
+    filter === 'all' ? peminjaman : peminjaman.filter((p) => p.status === filter);
 
   const paginated = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
   const handleExport = (range: '1bulan' | '3bulan' | '1tahun' | 'semua') => {
@@ -84,13 +85,14 @@ export default function PengajuanPage() {
     <div className="p-6 space-y-6">
       <h2 className="text-2xl font-bold">Data Pengajuan Peminjaman</h2>
 
+      {/* Filter Status */}
       <div className="flex gap-2 mb-4">
-        {['all', 'pending', 'approved', 'rejected'].map((f) => (
+        {['all', 'pending', 'approved', 'rejected', 'dikembalikan'].map((f) => (
           <button
             key={f}
             onClick={() => {
               setFilter(f as any);
-              setPage(1); // reset page saat filter ganti
+              setPage(1);
             }}
             className={`px-3 py-1 rounded ${
               filter === f ? 'bg-blue-600 text-white' : 'bg-gray-200'
@@ -101,22 +103,36 @@ export default function PengajuanPage() {
         ))}
       </div>
 
+      {/* Export Button */}
       <div className="flex gap-2 mb-4">
         <span className="font-semibold">Export Data:</span>
-        <button onClick={() => handleExport('1bulan')} className="bg-green-500 text-white px-2 py-1 rounded text-xs">
+        <button
+          onClick={() => handleExport('1bulan')}
+          className="bg-green-500 text-white px-2 py-1 rounded text-xs"
+        >
           1 Bulan
         </button>
-        <button onClick={() => handleExport('3bulan')} className="bg-green-500 text-white px-2 py-1 rounded text-xs">
+        <button
+          onClick={() => handleExport('3bulan')}
+          className="bg-green-500 text-white px-2 py-1 rounded text-xs"
+        >
           3 Bulan
         </button>
-        <button onClick={() => handleExport('1tahun')} className="bg-green-500 text-white px-2 py-1 rounded text-xs">
+        <button
+          onClick={() => handleExport('1tahun')}
+          className="bg-green-500 text-white px-2 py-1 rounded text-xs"
+        >
           1 Tahun
         </button>
-        <button onClick={() => handleExport('semua')} className="bg-green-500 text-white px-2 py-1 rounded text-xs">
+        <button
+          onClick={() => handleExport('semua')}
+          className="bg-green-500 text-white px-2 py-1 rounded text-xs"
+        >
           Semua
         </button>
       </div>
 
+      {/* Tabel Data */}
       <table className="w-full border text-sm">
         <thead className="bg-gray-200">
           <tr>
@@ -137,9 +153,27 @@ export default function PengajuanPage() {
               <td className="border px-2 py-1">{item.jabatan}</td>
               <td className="border px-2 py-1">{item.barang.nama}</td>
               <td className="border px-2 py-1">{item.jumlahBarang}</td>
-              <td className="border px-2 py-1">{new Date(item.tanggalPengajuan).toLocaleDateString()}</td>
-              <td className="border px-2 py-1">{new Date(item.tanggalPengembalian).toLocaleDateString()}</td>
-              <td className="border px-2 py-1 capitalize">{item.status}</td>
+              <td className="border px-2 py-1">
+                {new Date(item.tanggalPengajuan).toLocaleDateString()}
+              </td>
+              <td className="border px-2 py-1">
+                {new Date(item.tanggalPengembalian).toLocaleDateString()}
+              </td>
+              <td className="border px-2 py-1 capitalize">
+                <span
+                  className={`px-2 py-1 rounded text-xs text-white ${
+                    item.status === 'pending'
+                      ? 'bg-yellow-500'
+                      : item.status === 'approved'
+                      ? 'bg-blue-500'
+                      : item.status === 'rejected'
+                      ? 'bg-red-500'
+                      : 'bg-green-600'
+                  }`}
+                >
+                  {item.status}
+                </span>
+              </td>
               <td className="border px-2 py-1 space-x-1">
                 {item.status === 'pending' && (
                   <>
@@ -157,12 +191,21 @@ export default function PengajuanPage() {
                     </button>
                   </>
                 )}
+                {item.status === 'approved' && (
+                  <button
+                    onClick={() => handleApprove(item.id, 'dikembalikan')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs"
+                  >
+                    Kembalikan
+                  </button>
+                )}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
+      {/* Pagination */}
       <div className="flex justify-between items-center mt-4">
         <span>
           Page {page} of {totalPages}

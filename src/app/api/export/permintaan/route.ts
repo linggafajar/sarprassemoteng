@@ -19,6 +19,19 @@ export async function GET(req: NextRequest) {
     dateFilter.setFullYear(now.getFullYear() - 1);
   }
 
+  const translateStatus = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'Menunggu';
+      case 'approved':
+        return 'Disetujui';
+      case 'rejected':
+        return 'Ditolak';
+      default:
+        return status;
+    }
+  };
+
   try {
     const where = dateFilter ? { tanggal: { gte: dateFilter } } : {};
 
@@ -26,11 +39,10 @@ export async function GET(req: NextRequest) {
       where,
       orderBy: { tanggal: 'desc' },
       include: {
-        barang: true,
+        barang: true, // ambil relasi nama barang
       },
     });
 
-    // Buat workbook Excel
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Permintaan');
 
@@ -38,10 +50,12 @@ export async function GET(req: NextRequest) {
       { header: 'ID', key: 'id', width: 5 },
       { header: 'Nama', key: 'nama', width: 20 },
       { header: 'Jabatan', key: 'jabatan', width: 15 },
+      { header: 'Kelas', key: 'kelas', width: 10 },
+      { header: 'Keperluan', key: 'keperluan', width: 20 },
       { header: 'Nama Barang', key: 'namaBarang', width: 20 },
       { header: 'Jumlah', key: 'jumlah', width: 10 },
       { header: 'Tgl Permintaan', key: 'tanggal', width: 15 },
-      { header: 'Status', key: 'status', width: 10 },
+      { header: 'Status', key: 'status', width: 15 },
     ];
 
     data.forEach((item) => {
@@ -49,10 +63,12 @@ export async function GET(req: NextRequest) {
         id: item.id,
         nama: item.nama,
         jabatan: item.jabatan,
-        namaBarang: item.barang?.nama || '',
+        kelas: item.kelas || '-',
+        keperluan: item.keperluan,
+        namaBarang: item.barang?.nama || '-',
         jumlah: item.jumlah,
-        tanggal: new Date(item.tanggal).toLocaleDateString(),
-        status: item.status,
+        tanggal: new Date(item.tanggal).toLocaleDateString('id-ID'),
+        status: translateStatus(item.status), // ← TERJEMAHAN DI SINI
       });
     });
 
@@ -61,7 +77,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename=permintaan_${range || 'all'}.xlsx`,
+        'Content-Disposition': `attachment; filename=permintaan_${range || 'semua'}.xlsx`,
       },
     });
   } catch (err: any) {

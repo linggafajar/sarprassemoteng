@@ -12,6 +12,9 @@ type PermintaanBarang = {
   jumlah: number;
   createdAt: string;
   status: 'pending' | 'approved' | 'rejected';
+  barang: {
+    nama: string;
+  };
 };
 
 export default function PermintaanPage() {
@@ -26,7 +29,6 @@ export default function PermintaanPage() {
         const res = await fetch('/api/permintaan');
         if (!res.ok) throw new Error('Gagal ambil data');
         const data = await res.json();
-        // urutkan terbaru
         const sorted = data.sort(
           (a: PermintaanBarang, b: PermintaanBarang) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -62,6 +64,19 @@ export default function PermintaanPage() {
     window.location.href = `/api/export/permintaan?range=${range}`;
   };
 
+  const translateStatus = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'Menunggu';
+      case 'approved':
+        return 'Disetujui';
+      case 'rejected':
+        return 'Ditolak';
+      default:
+        return status;
+    }
+  };
+
   const filtered = filter === 'all' ? permintaan : permintaan.filter(p => p.status === filter);
   const paginated = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
@@ -82,7 +97,13 @@ export default function PermintaanPage() {
               filter === f ? 'bg-blue-600 text-white' : 'bg-gray-200'
             }`}
           >
-            {f.toUpperCase()}
+            {f === 'all'
+              ? 'SEMUA'
+              : f === 'pending'
+              ? 'MENUNGGU'
+              : f === 'approved'
+              ? 'DISETUJUI'
+              : 'DITOLAK'}
           </button>
         ))}
       </div>
@@ -108,11 +129,12 @@ export default function PermintaanPage() {
           <tr>
             <th className="border px-2 py-1">Nama</th>
             <th className="border px-2 py-1">Jabatan</th>
+            <th className="border px-2 py-1">Nama Barang</th>
             <th className="border px-2 py-1">Keperluan</th>
             <th className="border px-2 py-1">Jumlah</th>
             <th className="border px-2 py-1">Tanggal</th>
             <th className="border px-2 py-1">Status</th>
-            <th className="border px-2 py-1">Aksi</th>
+            <th className="border px-2 py-1">Tindakan</th>
           </tr>
         </thead>
         <tbody>
@@ -120,10 +142,11 @@ export default function PermintaanPage() {
             <tr key={item.id}>
               <td className="border px-2 py-1">{item.nama}</td>
               <td className="border px-2 py-1">{item.jabatan}</td>
+              <td className="border px-2 py-1">{item.barang?.nama || '-'}</td>
               <td className="border px-2 py-1">{item.keperluan}</td>
               <td className="border px-2 py-1">{item.jumlah}</td>
               <td className="border px-2 py-1">{new Date(item.tanggal).toLocaleDateString()}</td>
-              <td className="border px-2 py-1 capitalize">{item.status}</td>
+              <td className="border px-2 py-1 capitalize">{translateStatus(item.status)}</td>
               <td className="border px-2 py-1 space-x-1">
                 {item.status === 'pending' && (
                   <>
@@ -131,13 +154,13 @@ export default function PermintaanPage() {
                       onClick={() => handleApprove(item.id, 'approved')}
                       className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs"
                     >
-                      Approve
+                      Setujui
                     </button>
                     <button
                       onClick={() => handleApprove(item.id, 'rejected')}
                       className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs"
                     >
-                      Reject
+                      Tolak
                     </button>
                   </>
                 )}
@@ -149,7 +172,7 @@ export default function PermintaanPage() {
 
       <div className="flex justify-between items-center mt-4">
         <span>
-          Page {page} of {totalPages}
+          Halaman {page} dari {totalPages}
         </span>
         <div className="space-x-2">
           <button
@@ -157,14 +180,14 @@ export default function PermintaanPage() {
             disabled={page === 1}
             className="px-2 py-1 bg-gray-300 rounded disabled:opacity-50"
           >
-            Prev
+            Sebelumnya
           </button>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
             className="px-2 py-1 bg-gray-300 rounded disabled:opacity-50"
           >
-            Next
+            Selanjutnya
           </button>
         </div>
       </div>
